@@ -1,11 +1,13 @@
 #![cfg_attr(not(test), no_std)]
 
-use bare_metal_modulo::{ModNumC, MNum, ModNumIterator};
-use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color, is_drawable};
-use pc_keyboard::{DecodedKey, KeyCode};
+use bare_metal_modulo::{MNum, ModNumC, ModNumIterator};
 use num::traits::SaturatingAdd;
+use pc_keyboard::{DecodedKey, KeyCode};
+use pluggable_interrupt_os::vga_buffer::{
+    is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
+};
 
-#[derive(Copy,Debug,Clone,Eq,PartialEq)]
+#[derive(Copy, Debug, Clone, Eq, PartialEq)]
 pub struct LetterMover {
     letters: [char; BUFFER_WIDTH],
     num_letters: ModNumC<usize, BUFFER_WIDTH>,
@@ -13,7 +15,7 @@ pub struct LetterMover {
     col: ModNumC<usize, BUFFER_WIDTH>,
     row: ModNumC<usize, BUFFER_HEIGHT>,
     dx: ModNumC<usize, BUFFER_WIDTH>,
-    dy: ModNumC<usize, BUFFER_HEIGHT>
+    dy: ModNumC<usize, BUFFER_HEIGHT>,
 }
 
 impl LetterMover {
@@ -25,11 +27,11 @@ impl LetterMover {
             col: ModNumC::new(BUFFER_WIDTH / 2),
             row: ModNumC::new(BUFFER_HEIGHT / 2),
             dx: ModNumC::new(0),
-            dy: ModNumC::new(0)
+            dy: ModNumC::new(0),
         }
     }
 
-    fn letter_columns(&self) -> impl Iterator<Item=usize> {
+    fn letter_columns(&self) -> impl Iterator<Item = usize> {
         ModNumIterator::new(self.col)
             .take(self.num_letters.a())
             .map(|m| m.a())
@@ -43,7 +45,12 @@ impl LetterMover {
 
     fn clear_current(&self) {
         for x in self.letter_columns() {
-            plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
+            plot(
+                ' ',
+                x,
+                self.row.a(),
+                ColorCode::new(Color::Black, Color::Black),
+            );
         }
     }
 
@@ -54,14 +61,19 @@ impl LetterMover {
 
     fn draw_current(&self) {
         for (i, x) in self.letter_columns().enumerate() {
-            plot(self.letters[i], x, self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+            plot(
+                self.letters[i],
+                x,
+                self.row.a(),
+                ColorCode::new(Color::Cyan, Color::Black),
+            );
         }
     }
 
     pub fn key(&mut self, key: DecodedKey) {
         match key {
             DecodedKey::RawKey(code) => self.handle_raw(code),
-            DecodedKey::Unicode(c) => self.handle_unicode(c)
+            DecodedKey::Unicode(c) => self.handle_unicode(c),
         }
     }
 
