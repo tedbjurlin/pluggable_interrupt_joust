@@ -1,11 +1,11 @@
 #![cfg_attr(not(test), no_std)]
 
+use bare_metal_modulo::{MNum, ModNumC, ModNumIterator};
+use num::traits::SaturatingAdd;
 use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
 };
-use bare_metal_modulo::{MNum, ModNumC, ModNumIterator};
-use num::traits::SaturatingAdd;
 
 use core::{
     clone::Clone,
