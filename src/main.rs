@@ -3,8 +3,7 @@
 
 use crossbeam::atomic::AtomicCell;
 use pc_keyboard::DecodedKey;
-use pluggable_interrupt_os::vga_buffer::clear_screen;
-use pluggable_interrupt_os::HandlerTable;
+use pluggable_interrupt_os::{vga_buffer::clear_screen, HandlerTable};
 use pluggable_interrupt_template::LetterMover;
 
 #[no_mangle]
@@ -36,12 +35,12 @@ fn cpu_loop() -> ! {
     }
 }
 
-fn tick() {
-    TICKS.fetch_add(1);
-}
-
 fn key(key: DecodedKey) {
     LAST_KEY.store(Some(key));
+}
+
+fn tick() {
+    TICKS.fetch_add(1);
 }
 
 fn startup() {
