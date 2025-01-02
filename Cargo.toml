@@ -1,5 +1,5 @@
 [package]
-name = "swim"
+name = "pluggable_interrupt_template"
 version = "0.4.0"
 authors = ["gjf2a <ferrer@hendrix.edu>"]
 edition = "2021"
@@ -11,7 +11,6 @@ bootloader = "0.9.8"
 pc-keyboard = "0.8.0"
 pluggable_interrupt_os = "0.5.0"
 bare_metal_modulo = "1"
-bare_metal_document = {git = "https://github.com/gjf2a/bare_metal_document"}
 
 [dependencies.num]
 version = "0.4.0"
