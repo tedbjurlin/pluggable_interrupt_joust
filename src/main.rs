@@ -20,7 +20,7 @@ static LAST_KEY: AtomicCell<Option<DecodedKey>> = AtomicCell::new(None);
 static TICKED: AtomicCell<bool> = AtomicCell::new(false);
 
 fn cpu_loop() -> ! {
-    let mut kernel = LetterMover::new();
+    let mut kernel = LetterMover::default();
     loop {
         if let Some(key) = LAST_KEY.load() {
             LAST_KEY.store(None);
