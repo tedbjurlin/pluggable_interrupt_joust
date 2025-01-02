@@ -9,8 +9,8 @@ use pluggable_interrupt_os::vga_buffer::{
 
 use core::{
     clone::Clone,
-    default::Default,
     cmp::{Eq, PartialEq},
+    default::Default,
     iter::Iterator,
     marker::Copy,
     prelude::rust_2024::derive,
@@ -29,7 +29,7 @@ pub struct LetterMover {
 
 impl Default for LetterMover {
     fn default() -> Self {
-        Self { 
+        Self {
             letters: ['A'; BUFFER_WIDTH],
             num_letters: ModNumC::new(1),
             next_letter: ModNumC::new(1),
