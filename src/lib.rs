@@ -1,7 +1,6 @@
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 
-use bare_metal_modulo::{MNum, ModNumC, ModNumIterator};
-use num::traits::SaturatingAdd;
+use num::Integer;
 use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
@@ -9,8 +8,7 @@ use pluggable_interrupt_os::vga_buffer::{
 
 use core::{
     clone::Clone,
-    cmp::{Eq, PartialEq},
-    default::Default,
+    cmp::{min, Eq, PartialEq},
     iter::Iterator,
     marker::Copy,
     prelude::rust_2024::derive,
@@ -19,33 +17,43 @@ use core::{
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct LetterMover {
     letters: [char; BUFFER_WIDTH],
-    num_letters: ModNumC<usize, BUFFER_WIDTH>,
-    next_letter: ModNumC<usize, BUFFER_WIDTH>,
-    col: ModNumC<usize, BUFFER_WIDTH>,
-    row: ModNumC<usize, BUFFER_HEIGHT>,
-    dx: ModNumC<usize, BUFFER_WIDTH>,
-    dy: ModNumC<usize, BUFFER_HEIGHT>,
+    num_letters: usize,
+    next_letter: usize,
+    col: usize,
+    row: usize,
+    dx: usize,
+    dy: usize,
+}
+
+pub fn safe_add<const LIMIT: usize>(a: usize, b: usize) -> usize {
+    (a + b).mod_floor(&LIMIT)
+}
+
+pub fn add1<const LIMIT: usize>(value: usize) -> usize {
+    safe_add::<LIMIT>(value, 1)
+}
+
+pub fn sub1<const LIMIT: usize>(value: usize) -> usize {
+    safe_add::<LIMIT>(value, LIMIT - 1)
 }
 
 impl Default for LetterMover {
     fn default() -> Self {
         Self {
             letters: ['A'; BUFFER_WIDTH],
-            num_letters: ModNumC::new(1),
-            next_letter: ModNumC::new(1),
-            col: ModNumC::new(BUFFER_WIDTH / 2),
-            row: ModNumC::new(BUFFER_HEIGHT / 2),
-            dx: ModNumC::new(0),
-            dy: ModNumC::new(0),
+            num_letters: 1,
+            next_letter: 1,
+            col: BUFFER_WIDTH / 2,
+            row: BUFFER_HEIGHT / 2,
+            dx: 0,
+            dy: 0,
         }
     }
 }
 
 impl LetterMover {
-    fn letter_columns(&self) -> impl Iterator<Item = usize> {
-        ModNumIterator::new(self.col)
-            .take(self.num_letters.a())
-            .map(|m| m.a())
+    fn letter_columns(&self) -> impl Iterator<Item = usize> + '_ {
+        (0..self.num_letters).map(|n| safe_add::<BUFFER_WIDTH>(n, self.col))
     }
 
     pub fn tick(&mut self) {
@@ -56,18 +64,13 @@ impl LetterMover {
 
     fn clear_current(&self) {
         for x in self.letter_columns() {
-            plot(
-                ' ',
-                x,
-                self.row.a(),
-                ColorCode::new(Color::Black, Color::Black),
-            );
+            plot(' ', x, self.row, ColorCode::new(Color::Black, Color::Black));
         }
     }
 
     fn update_location(&mut self) {
-        self.col += self.dx;
-        self.row += self.dy;
+        self.col = safe_add::<BUFFER_WIDTH>(self.col, self.dx);
+        self.row = safe_add::<BUFFER_HEIGHT>(self.row, self.dy);
     }
 
     fn draw_current(&self) {
@@ -75,7 +78,7 @@ impl LetterMover {
             plot(
                 self.letters[i],
                 x,
-                self.row.a(),
+                self.row,
                 ColorCode::new(Color::Cyan, Color::Black),
             );
         }
@@ -91,16 +94,16 @@ impl LetterMover {
     fn handle_raw(&mut self, key: KeyCode) {
         match key {
             KeyCode::ArrowLeft => {
-                self.dx -= 1;
+                self.dx = sub1::<BUFFER_WIDTH>(self.dx);
             }
             KeyCode::ArrowRight => {
-                self.dx += 1;
+                self.dx = add1::<BUFFER_WIDTH>(self.dx);
             }
             KeyCode::ArrowUp => {
-                self.dy -= 1;
+                self.dy = sub1::<BUFFER_HEIGHT>(self.dy);
             }
             KeyCode::ArrowDown => {
-                self.dy += 1;
+                self.dy = add1::<BUFFER_HEIGHT>(self.dy);
             }
             _ => {}
         }
@@ -108,9 +111,9 @@ impl LetterMover {
 
     fn handle_unicode(&mut self, key: char) {
         if is_drawable(key) {
-            self.letters[self.next_letter.a()] = key;
-            self.next_letter += 1;
-            self.num_letters = self.num_letters.saturating_add(&ModNumC::new(1));
+            self.letters[self.next_letter] = key;
+            self.next_letter = add1::<BUFFER_WIDTH>(self.next_letter);
+            self.num_letters = min(self.num_letters + 1, BUFFER_WIDTH);
         }
     }
 }
