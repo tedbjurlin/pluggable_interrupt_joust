@@ -22,15 +22,13 @@ static TICKED: AtomicCell<bool> = AtomicCell::new(false);
 fn cpu_loop() -> ! {
     let mut kernel = LetterMover::default();
     loop {
+        if let Ok(_) = TICKED.compare_exchange(true, false) {
+            kernel.tick();
+        }
+        
         if let Ok(k) = LAST_KEY.fetch_update(|k| if k.is_some() {Some(None)} else {None}) {
             if let Some(k) = k {
                 kernel.key(k);
-            }
-        }
-
-        if let Ok(ticked) = TICKED.fetch_update(|t| if t {Some(false)} else {None}) {
-            if ticked {
-                kernel.tick();
             }
         }
     }
