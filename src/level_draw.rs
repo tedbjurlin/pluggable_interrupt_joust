@@ -91,6 +91,17 @@ pub fn draw_titlescreen() {
     const TITLE_X: usize = 35;
     const TITLE_Y: usize = 10;
 
+    for x in 0..80 {
+        for y in 9..14 {
+            plot(
+                ' ',
+                x,
+                y,
+                ColorCode::new(Color::Red, Color::Red),
+            );
+        }
+    }
+
     // J
     plot(
         205u8 as char,
