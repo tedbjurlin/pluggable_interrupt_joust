@@ -101,6 +101,14 @@ pub fn draw_titlescreen() {
             );
         }
     }
+    for x in 0..80 {
+        plot(
+            205u8 as char,
+            x,
+            11,
+            ColorCode::new(Color::Blue, Color::Red),
+        );
+    }
 
     // J
     plot(
@@ -284,34 +292,34 @@ pub fn draw_titlescreen() {
         'P',
         PROMPT_X,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         'r',
         PROMPT_X+1,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         'e',
         PROMPT_X+2,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         's',
         PROMPT_X+3,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         's',
         PROMPT_X+4,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
-        'P',
+        'Z',
         PROMPT_X+6,
         PROMPT_Y,
         ColorCode::new(Color::White, Color::LightBlue),
@@ -320,43 +328,43 @@ pub fn draw_titlescreen() {
         't',
         PROMPT_X+8,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         'o',
         PROMPT_X+9,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         's',
         PROMPT_X+11,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         't',
         PROMPT_X+12,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         'a',
         PROMPT_X+13,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         'r',
         PROMPT_X+14,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
     plot(
         't',
         PROMPT_X+15,
         PROMPT_Y,
-        ColorCode::new(Color::LightBlue, Color::Black),
+        ColorCode::new(Color::White, Color::Black),
     );
 
 }
@@ -490,7 +498,7 @@ pub fn draw_game_over(player_score: usize) {
     const OPTIONS_X: usize = 34;
     const OPTIONS_Y: usize = 15;
 
-    plot('P', OPTIONS_X, OPTIONS_Y, ColorCode::new(Color::White, Color::Green));
+    plot('Z', OPTIONS_X, OPTIONS_Y, ColorCode::new(Color::White, Color::Green));
     plot('P', OPTIONS_X+2, OPTIONS_Y, ColorCode::new(Color::White, Color::Black));
     plot('l', OPTIONS_X+3, OPTIONS_Y, ColorCode::new(Color::White, Color::Black));
     plot('a', OPTIONS_X+4, OPTIONS_Y, ColorCode::new(Color::White, Color::Black));

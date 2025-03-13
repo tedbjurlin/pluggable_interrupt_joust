@@ -218,18 +218,18 @@ impl Player {
 
     pub fn accel_left(&mut self) {
         if self.on_ground {
-            self.dx = self.dx - 3
+            self.dx = self.dx - 4
         } else {
-            self.dx = self.dx - 2;
+            self.dx = self.dx - 3;
         }
     }
 
     pub fn accel_right(&mut self) {
         if self.dx < 40 {
             if self.on_ground {
-                self.dx = self.dx + 3
+                self.dx = self.dx + 4
             } else {
-                self.dx = self.dx + 2;
+                self.dx = self.dx + 3;
             }
         }
     }

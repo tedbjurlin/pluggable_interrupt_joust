@@ -49,6 +49,7 @@ pub struct Joust {
     enemies: [Enemy; 10],
     spawned_enemies: usize,
     wave: usize,
+    ui_drawn: bool,
 }
 
 pub fn safe_add<const LIMIT: usize>(a: usize, b: usize) -> usize {
@@ -71,6 +72,7 @@ impl Default for Joust {
             enemies: [Enemy::default(); 10],
             spawned_enemies: 0,
             wave: 1,
+            ui_drawn: false,
         }
     }
 }
@@ -87,6 +89,9 @@ impl Joust {
             self.player = Player::default();
             self.enemies = Default::default();
             self.spawned_enemies = 0;
+            self.wave = 1;
+        } else {
+            self.ui_drawn = false;
         }
         self.state = new_state;
         for x in 0..80 {
@@ -119,12 +124,12 @@ impl Joust {
                         self.enemies[self.spawned_enemies].dead = false;
                         self.enemies[self.spawned_enemies].x = sx;
                         self.enemies[self.spawned_enemies].y = sy;
-                        self.spawned_enemies += 1;
                         if self.spawned_enemies >= 3 && self.spawned_enemies < 5 {
                             self.enemies[self.spawned_enemies].etype = EnemyType::Hunter
                         } else if self.spawned_enemies >= 5 {
                             self.enemies[self.spawned_enemies].etype = EnemyType::ShadowLord
                         }
+                        self.spawned_enemies += 1;
                     }
                 }
                 if self.player.dead {
@@ -237,10 +242,13 @@ impl Joust {
         None
     }
 
-    fn draw_all(&self) {
+    fn draw_all(&mut self) {
         match self.state {
             State::TitleScreen => {
-                draw_titlescreen();
+                if !self.ui_drawn {
+                    draw_titlescreen();
+                    self.ui_drawn = true;
+                }
             }
             State::Playing => {
                 if !self.player.dead {
@@ -257,7 +265,10 @@ impl Joust {
                 draw_ui(self.player.score, self.player.lives, self.wave);
             }
             State::GameOver => {
-                draw_game_over(self.player.score);
+                if !self.ui_drawn {
+                    draw_game_over(self.player.score);
+                    self.ui_drawn = true;
+                }
             },
         }
     }
@@ -298,7 +309,7 @@ impl Joust {
     fn handle_unicode(&mut self, key: char) {
         match self.state {
             State::TitleScreen => {
-                if key == 'p' {
+                if key == 'z' {
                     self.state_transition(State::Playing);
                 }
             },
@@ -308,7 +319,7 @@ impl Joust {
                 }
             },
             State::GameOver => {
-                if key == 'p' {
+                if key == 'z' {
                     self.state_transition(State::Playing);
                 }
                 if key == 'q' {
