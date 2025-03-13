@@ -5,25 +5,27 @@ const MOVE_WIDTH: isize = BUFFER_WIDTH as isize - 4;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Player {
-    x: usize,
-    y: usize,
-    dx: isize,
-    dy: isize,
+    pub x: usize,
+    pub y: usize,
+    pub dx: isize,
+    pub dy: isize,
     pub score: usize,
     pub lives: usize,
-    on_ground: bool,
+    pub on_ground: bool,
+    pub dead: bool,
 }
 
 impl Default for Player {
     fn default() -> Self {
         Self {
-            x: BUFFER_WIDTH / 2,
-            y: BUFFER_HEIGHT / 2,
-            score: BUFFER_HEIGHT / 2,
+            x: 39,
+            y: 20,
+            score: 0,
             lives: 6,
             dx: 0,
             dy: 0,
             on_ground: true,
+            dead: false,
         }
     }
 }
@@ -41,55 +43,42 @@ impl Player {
             }
         }
     }
-
-    pub fn update(&mut self, ground_bounding_boxes: [(usize, usize, usize, usize); 5]) -> bool {
-        for (sx, sy) in self.get_quarter_steps() {
-            self.x = sx;
-            self.y = sy;
-            if !self.on_ground && self.is_on_ground(sx, sy, ground_bounding_boxes) {
-                self.on_ground = true;
-                break;
-            } else {
-                self.on_ground = false;
-            }
-            if sy >= 24 {
-                return self.die();
-            }
-        }
-
-        if self.on_ground && self.dy > 0 {
-            self.dy = 0
-        } else if self.dy < 30 {
-            self.dy = self.dy + 5;
-        }
-
-        false
-    }
-
     fn is_on_ground(
         &self,
-        x: usize,
-        y: usize,
+        sx: usize,
+        sy: usize,
         ground_bounding_boxes: [(usize, usize, usize, usize); 5],
     ) -> bool {
         for (x1, y1, x2, y2) in ground_bounding_boxes {
-            if y + 3 >= y1 && y + 3 < y2 && x >= x1 && x + 3 < x2 {
+            if sy + 3 >= y1 && sy + 3 < y2 && sx >= x1 && sx + 3 < x2 {
                 return true;
             }
         }
         return false;
     }
 
-    fn get_quarter_steps(&self) -> [(usize, usize); 4] {
-        let mut steps = [(0, 0); 4];
-        for i in 0..4 {
-            steps[i] = (
-                (self.x as isize + (self.dx * (i as isize + 1) / 40)).mod_floor(&MOVE_WIDTH)
-                    as usize,
-                (self.y as isize + (self.dy * (i as isize + 1) / 40)) as usize,
-            )
+    pub fn update_quarter_step(&mut self, quarter: isize, ground_bounding_boxes: [(usize, usize, usize, usize); 5]) -> Option<(isize, isize)> {
+        let sx = (self.x as isize + (self.dx * quarter / 40)).mod_floor(&MOVE_WIDTH);
+        let mut sy = self.y as isize + (self.dy * quarter / 40);
+
+        if !self.dead {
+            if sy >= 23 {
+                if self.die() {
+                    return None
+                }
+            } else if sy < 0 {
+                self.dy = -self.dy;
+                sy = 0
+            }
+            
+            self.on_ground =  self.is_on_ground(sx as usize, sy as usize, ground_bounding_boxes);
+    
+            if self.on_ground && self.dy > 0 {
+                self.dy = 0
+            }
         }
-        steps
+        Some((sx, sy))
+
     }
 
     pub fn draw(&self) {
@@ -220,6 +209,7 @@ impl Player {
             self.dx = 0;
             self.dy = 0;
             self.score += 50;
+            self.dead = true;
         } else {
             return true;
         }
@@ -227,18 +217,24 @@ impl Player {
     }
 
     pub fn accel_left(&mut self) {
-        if self.dx > -40 {
-            self.dx = self.dx - 1;
+        if self.on_ground {
+            self.dx = self.dx - 3
+        } else {
+            self.dx = self.dx - 2;
         }
     }
 
     pub fn accel_right(&mut self) {
         if self.dx < 40 {
-            self.dx = self.dx + 1;
+            if self.on_ground {
+                self.dx = self.dx + 3
+            } else {
+                self.dx = self.dx + 2;
+            }
         }
     }
 
     pub fn flap(&mut self) {
-        self.dy = -25
+        self.dy = -10
     }
 }

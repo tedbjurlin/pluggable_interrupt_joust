@@ -1,5 +1,7 @@
 #![no_std]
 
+use enemy::{Enemy, EnemyType};
+use level_draw::{draw_game_over, draw_lava, draw_platforms, draw_titlescreen, draw_ui};
 use num::Integer;
 use pc_keyboard::{DecodedKey, KeyCode};
 use player::Player;
@@ -11,6 +13,7 @@ use core::
 
 mod enemy;
 mod player;
+mod level_draw;
 
 // Stretch Goals
 // 1. Two players
@@ -22,7 +25,14 @@ const GROUND_BOUNDING_BOXES: [(usize, usize, usize, usize); 5] = [
     (70, 12, 80, 13),
     (60, 11, 70, 12),
     (20, 23, 60, 24),
-    (0, 0, 0, 0),
+    (35, 7, 50, 8),
+];
+
+const SPAWN_POINTS: [(usize, usize); 4] = [
+    (7, 9),
+    (74, 9),
+    (39, 20),
+    (42, 4),
 ];
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -36,6 +46,9 @@ enum State {
 pub struct Joust {
     player: Player,
     state: State,
+    enemies: [Enemy; 10],
+    spawned_enemies: usize,
+    wave: usize,
 }
 
 pub fn safe_add<const LIMIT: usize>(a: usize, b: usize) -> usize {
@@ -55,6 +68,9 @@ impl Default for Joust {
         Self {
             player: Player::default(),
             state: State::TitleScreen,
+            enemies: [Enemy::default(); 10],
+            spawned_enemies: 0,
+            wave: 1,
         }
     }
 }
@@ -69,6 +85,8 @@ impl Joust {
     fn state_transition(&mut self, new_state: State) {
         if new_state == State::Playing {
             self.player = Player::default();
+            self.enemies = Default::default();
+            self.spawned_enemies = 0;
         }
         self.state = new_state;
         for x in 0..80 {
@@ -83,6 +101,9 @@ impl Joust {
             State::TitleScreen => (),
             State::Playing => {
                 self.player.clear();
+                for enemy in self.enemies {
+                    enemy.clear();
+                }
             }
             State::GameOver => (),
         }
@@ -92,417 +113,165 @@ impl Joust {
         match self.state {
             State::TitleScreen => (),
             State::Playing => {
-                if self.player.update(GROUND_BOUNDING_BOXES) {
-                    self.state_transition(State::GameOver);
-                };
+                if self.spawned_enemies < self.wave && self.spawned_enemies < 10 {
+                    if let Some((sx, sy)) = self.get_spawn_point(false) {
+                        self.enemies[self.spawned_enemies] = Enemy::default();
+                        self.enemies[self.spawned_enemies].dead = false;
+                        self.enemies[self.spawned_enemies].x = sx;
+                        self.enemies[self.spawned_enemies].y = sy;
+                        self.spawned_enemies += 1;
+                        if self.spawned_enemies >= 3 && self.spawned_enemies < 5 {
+                            self.enemies[self.spawned_enemies].etype = EnemyType::Hunter
+                        } else if self.spawned_enemies >= 5 {
+                            self.enemies[self.spawned_enemies].etype = EnemyType::ShadowLord
+                        }
+                    }
+                }
+                if self.player.dead {
+                    if let Some((sx, sy)) = self.get_spawn_point(true) {
+                        self.player.x = sx;
+                        self.player.y = sy;
+                        self.player.dead = false;
+                    }
+                }
+
+                if self.spawned_enemies == self.wave || self.spawned_enemies == 10 {
+                    let mut all_dead = true;
+                    for i in 0..self.enemies.len() {
+                        if !self.enemies[i].dead {
+                            all_dead = false;
+                        }
+                    }
+                    if all_dead {
+                        self.wave += 1;
+                        self.spawned_enemies = 0;
+                    }
+                }
+
+
+
+                for i in 0..self.enemies.len() {
+                    if !self.enemies[i].dead {
+                        self.enemies[i].think(self.player.x, self.player.y);
+                    }
+                }
+                let mut sx = 0;
+                let mut sy = 0;
+                for i in 1..5 {
+                    if let Some(sv) = self.player.update_quarter_step(i, GROUND_BOUNDING_BOXES) {
+                        (sx, sy) = sv;
+                        for j in 0..self.enemies.len() {
+                            if !self.enemies[j].dead {
+                                if let Some((ex, ey)) = self.enemies[j].update_quarter_step(i, GROUND_BOUNDING_BOXES) {
+                                    if self.do_overlap((sx, sy), (sx + 3, sy + 2), (ex, ey), (ex + 3, ey + 2)) && !self.player.dead {
+                                        if sy < ey {
+                                            if self.enemies[j].die() {
+                                                self.enemies[j].dead = true;
+                                            }
+                                            self.player.score += 250;
+                                        } else if ey < sy {
+                                            if self.player.die() {
+                                                self.state_transition(State::GameOver);
+                                                return;
+                                            }
+                                        } else {
+                                            self.player.dx *= -1;
+                                            self.enemies[j].dx *= -1;
+                                        }
+                                    }
+                                    if i == 4 {
+                                        self.enemies[j].x = ex as usize;
+                                        self.enemies[j].y = ey as usize;
+
+                                        if self.enemies[j].dy < 30 && !self.enemies[j].on_ground {
+                                            self.enemies[j].dy += 5;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        self.state_transition(State::GameOver);
+                        break;
+                    }
+                }
+                if !self.player.dead {
+                    self.player.x = sx as usize;
+                    self.player.y = sy as usize;
+    
+                    if self.player.dy < 30 && !self.player.on_ground {
+                        self.player.dy += 5;
+                    }
+                }
+                // for enemy in self.enemies {
+                //     if let Some(mut e)  = enemy {
+                //         e.think(self.player.x, self.player.y);
+                //         e.update(GROUND_BOUNDING_BOXES);
+                //         self.player.score = e.score;
+                //     }
+                // }
+                // if self.player.update(GROUND_BOUNDING_BOXES) {
+                //     self.state_transition(State::GameOver);
+                // };
             }
             State::GameOver => (),
         }
     }
 
+    fn get_spawn_point(&self, is_player: bool) -> Option<(usize, usize)> {
+        'outer: for point in SPAWN_POINTS {
+            for enemy in self.enemies {
+                if !enemy.dead {
+                    if self.do_overlap((enemy.x as isize, enemy.y as isize), (enemy.x as isize + 5, enemy.y as isize + 5), (point.0 as isize, point.1 as isize), (point.0 as isize + 5, point.1 as isize + 3)) {
+                        continue 'outer
+                    }
+                }
+            }
+            if !is_player && !self.player.dead {
+                if self.do_overlap((self.player.x as isize, self.player.y as isize), (self.player.x as isize + 5, self.player.y as isize + 5), (point.0 as isize, point.1 as isize), (point.0 as isize + 5, point.1 as isize + 3)) {
+                    continue 'outer
+                }
+            }
+            return Some(point)
+        }
+        None
+    }
+
     fn draw_all(&self) {
         match self.state {
             State::TitleScreen => {
-                self.draw_titlescreen();
+                draw_titlescreen();
             }
             State::Playing => {
-                self.player.draw();
+                if !self.player.dead {
+                    self.player.draw();
+                }
+                for enemy in self.enemies {
+                    if !enemy.dead {
+                        enemy.draw()
+                    }
+                }
 
-                self.draw_platforms();
-                self.draw_lava();
-                self.draw_ui(self.player.score, self.player.lives);
+                draw_platforms();
+                draw_lava();
+                draw_ui(self.player.score, self.player.lives, self.wave);
             }
             State::GameOver => {
-                self.draw_game_over();
+                draw_game_over(self.player.score);
             },
         }
     }
 
-    fn draw_platforms(&self) {
-        for x in 0..15 {
-            plot(' ', x, 12, ColorCode::new(Color::Brown, Color::Brown));
+    fn do_overlap(&self, l1: (isize, isize), r1: (isize, isize), l2: (isize, isize), r2: (isize, isize)) -> bool {
+        if l1.0 > r2.0 || l2.0 > r1.0 {
+            return false
         }
-        for x in 70..80 {
-            plot(' ', x, 12, ColorCode::new(Color::Brown, Color::Brown));
+
+        if r1.1 < l2.1 || r2.1 < l1.1 {
+            return false
         }
-        for x in 60..70 {
-            plot(' ', x, 11, ColorCode::new(Color::Brown, Color::Brown));
-        }
-        for x in 20..60 {
-            plot(' ', x, 23, ColorCode::new(Color::Brown, Color::Brown));
-        }
-    }
 
-    fn draw_lava(&self) {
-        for x in 0..21 {
-            plot(
-                178u8 as char,
-                x,
-                24,
-                ColorCode::new(Color::Red, Color::Yellow),
-            );
-        }
-        for x in 59..80 {
-            plot(
-                178u8 as char,
-                x,
-                24,
-                ColorCode::new(Color::Red, Color::Yellow),
-            );
-        }
-    }
-
-    fn draw_ui(&self, score: usize, lives: usize) {
-        for x in 21..59 {
-            plot(' ', x, 24, ColorCode::new(Color::Brown, Color::Brown))
-        }
-        self.draw_score(23, 24, score);
-        for x in 0..lives {
-            plot(
-                1u8 as char,
-                x + 35,
-                24,
-                ColorCode::new(Color::Yellow, Color::Brown),
-            );
-        }
-    }
-
-    fn draw_score(&self, sx: usize, sy: usize, score: usize) {
-        for x in 0usize..9 {
-            let d = 10_usize.pow(9 - x as u32);
-            let v = 10_usize.pow(8 - x as u32);
-            let num = score.mod_floor(&d) / v + 48;
-            plot(
-                num as u8 as char,
-                x + sx,
-                sy,
-                ColorCode::new(Color::Yellow, Color::Brown),
-            );
-        }
-    }
-
-    fn draw_titlescreen(&self) {
-        const TITLE_X: usize = 35;
-        const TITLE_Y: usize = 10;
-
-        // J
-        plot(
-            205u8 as char,
-            TITLE_X,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            187u8 as char,
-            TITLE_X + 1,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 1,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            200u8 as char,
-            TITLE_X,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            188u8 as char,
-            TITLE_X + 1,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-
-        // O
-        plot(
-            201u8 as char,
-            TITLE_X + 2,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            187u8 as char,
-            TITLE_X + 3,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 2,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 3,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            200u8 as char,
-            TITLE_X + 2,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            188u8 as char,
-            TITLE_X + 3,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-
-        // U
-        plot(
-            186u8 as char,
-            TITLE_X + 4,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 5,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 4,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 5,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            200u8 as char,
-            TITLE_X + 4,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            188u8 as char,
-            TITLE_X + 5,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-
-        // S
-        plot(
-            201u8 as char,
-            TITLE_X + 6,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            205u8 as char,
-            TITLE_X + 7,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            200u8 as char,
-            TITLE_X + 6,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            187u8 as char,
-            TITLE_X + 7,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            205u8 as char,
-            TITLE_X + 6,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            188u8 as char,
-            TITLE_X + 7,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-
-        // T
-        plot(
-            201u8 as char,
-            TITLE_X + 8,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            205u8 as char,
-            TITLE_X + 9,
-            TITLE_Y,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 8,
-            TITLE_Y + 1,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-        plot(
-            186u8 as char,
-            TITLE_X + 8,
-            TITLE_Y + 2,
-            ColorCode::new(Color::Yellow, Color::Red),
-        );
-
-
-        //prompt
-
-        const PROMPT_X: usize = 32;
-        const PROMPT_Y: usize = 16;
-
-        plot(
-            'P',
-            PROMPT_X,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'r',
-            PROMPT_X+1,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'e',
-            PROMPT_X+2,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            's',
-            PROMPT_X+3,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            's',
-            PROMPT_X+4,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'X',
-            PROMPT_X+6,
-            PROMPT_Y,
-            ColorCode::new(Color::White, Color::LightBlue),
-        );
-        plot(
-            't',
-            PROMPT_X+8,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'o',
-            PROMPT_X+9,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            's',
-            PROMPT_X+11,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            't',
-            PROMPT_X+12,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'a',
-            PROMPT_X+13,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            'r',
-            PROMPT_X+14,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-        plot(
-            't',
-            PROMPT_X+15,
-            PROMPT_Y,
-            ColorCode::new(Color::LightBlue, Color::Black),
-        );
-
-    }
-
-    fn draw_game_over(&self) {
-        const GAME_OVER_X: usize = 35;
-        const GAME_OVER_Y: usize = 10;
-        // Game Over
-        plot(
-            'G',
-            GAME_OVER_X,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'A',
-            GAME_OVER_X+1,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'M',
-            GAME_OVER_X+2,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'E',
-            GAME_OVER_X+3,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'O',
-            GAME_OVER_X+5,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'V',
-            GAME_OVER_X+6,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'E',
-            GAME_OVER_X+7,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            'R',
-            GAME_OVER_X+8,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        plot(
-            '!',
-            GAME_OVER_X+9,
-            GAME_OVER_Y,
-            ColorCode::new(Color::Red, Color::Black),
-        );
-        
+        true
     }
 
     pub fn key(&mut self, key: DecodedKey) {
@@ -529,7 +298,7 @@ impl Joust {
     fn handle_unicode(&mut self, key: char) {
         match self.state {
             State::TitleScreen => {
-                if key == 'x' {
+                if key == 'p' {
                     self.state_transition(State::Playing);
                 }
             },
@@ -539,7 +308,10 @@ impl Joust {
                 }
             },
             State::GameOver => {
-                if key == 'x' {
+                if key == 'p' {
+                    self.state_transition(State::Playing);
+                }
+                if key == 'q' {
                     self.state_transition(State::TitleScreen);
                 }
             },
