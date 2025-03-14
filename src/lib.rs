@@ -173,7 +173,11 @@ impl Joust {
                                             if self.enemies[j].die() {
                                                 self.enemies[j].dead = true;
                                             }
-                                            self.player.score += 250;
+                                            match self.enemies[j].etype {
+                                                EnemyType::Bounder => self.player.score += 250,
+                                                EnemyType::Hunter => self.player.score += 500,
+                                                EnemyType::ShadowLord => self.player.score += 1000,
+                                            };
                                         } else if ey < sy {
                                             if self.player.die() {
                                                 self.state_transition(State::GameOver);

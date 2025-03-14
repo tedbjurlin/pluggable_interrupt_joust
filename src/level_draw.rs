@@ -88,27 +88,121 @@ pub fn draw_wave(sx: usize, sy: usize, wave: usize) {
 }
 
 pub fn draw_titlescreen() {
-    const TITLE_X: usize = 35;
+    const TITLE_X: usize = 34;
     const TITLE_Y: usize = 10;
 
-    for x in 0..80 {
-        for y in 9..14 {
-            plot(
-                ' ',
-                x,
-                y,
-                ColorCode::new(Color::Red, Color::Red),
-            );
-        }
-    }
+    // for x in 0..80 {
+    //     for y in 6..17 {
+    //         plot(
+    //             ' ',
+    //             x,
+    //             y,
+    //             ColorCode::new(Color::Red, Color::Red),
+    //         );
+    //     }
+    // }
     for x in 0..80 {
         plot(
             205u8 as char,
             x,
             11,
-            ColorCode::new(Color::Blue, Color::Red),
+            ColorCode::new(Color::LightBlue, Color::Black),
         );
     }
+    for y in 9..14 {
+        plot(
+            186u8 as char,
+            39,
+            y,
+            ColorCode::new(Color::LightBlue, Color::Black),
+        );
+    }
+    // for y in 9..14 {
+    //     plot(
+    //         186u8 as char,
+    //         39,
+    //         y,
+    //         ColorCode::new(Color::Blue, Color::Red),
+    //     );
+    // }
+    plot(
+        179u8 as char,
+        39,
+        8,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        179u8 as char,
+        39,
+        14,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        179u8 as char,
+        39,
+        7,
+        ColorCode::new(Color::White, Color::Black),
+    );
+    plot(
+        179u8 as char,
+        39,
+        15,
+        ColorCode::new(Color::White, Color::Black),
+    );
+    plot(
+        15u8 as char,
+        39,
+        11,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        '/',
+        37,
+        13,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        '/',
+        41,
+        9,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        '\\',
+        41,
+        13,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        '\\',
+        37,
+        9,
+        ColorCode::new(Color::LightBlue, Color::Black),
+    );
+    plot(
+        '/',
+        36,
+        14,
+        ColorCode::new(Color::White, Color::Black),
+    );
+    plot(
+        '/',
+        42,
+        8,
+        ColorCode::new(Color::White, Color::Black),
+    );
+    plot(
+        '\\',
+        42,
+        14,
+        ColorCode::new(Color::White, Color::Black),
+    );
+    plot(
+        '\\',
+        36,
+        8,
+        ColorCode::new(Color::White, Color::Black),
+    );
 
     // J
     plot(
@@ -189,7 +283,7 @@ pub fn draw_titlescreen() {
     );
     plot(
         186u8 as char,
-        TITLE_X + 5,
+        TITLE_X + 6,
         TITLE_Y,
         ColorCode::new(Color::Yellow, Color::Red),
     );
@@ -201,7 +295,7 @@ pub fn draw_titlescreen() {
     );
     plot(
         186u8 as char,
-        TITLE_X + 5,
+        TITLE_X + 6,
         TITLE_Y + 1,
         ColorCode::new(Color::Yellow, Color::Red),
     );
@@ -211,9 +305,14 @@ pub fn draw_titlescreen() {
         TITLE_Y + 2,
         ColorCode::new(Color::Yellow, Color::Red),
     );
+    plot(205u8 as char, 
+        TITLE_X + 5, 
+        TITLE_Y + 2,
+        ColorCode::new(Color::Yellow, Color::Red)
+    );
     plot(
         188u8 as char,
-        TITLE_X + 5,
+        TITLE_X + 6,
         TITLE_Y + 2,
         ColorCode::new(Color::Yellow, Color::Red),
     );
@@ -221,37 +320,37 @@ pub fn draw_titlescreen() {
     // S
     plot(
         201u8 as char,
-        TITLE_X + 6,
+        TITLE_X + 7,
         TITLE_Y,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         205u8 as char,
-        TITLE_X + 7,
+        TITLE_X + 8,
         TITLE_Y,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         200u8 as char,
-        TITLE_X + 6,
+        TITLE_X + 7,
         TITLE_Y + 1,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         187u8 as char,
-        TITLE_X + 7,
+        TITLE_X + 8,
         TITLE_Y + 1,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         205u8 as char,
-        TITLE_X + 6,
+        TITLE_X + 7,
         TITLE_Y + 2,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         188u8 as char,
-        TITLE_X + 7,
+        TITLE_X + 8,
         TITLE_Y + 2,
         ColorCode::new(Color::Yellow, Color::Red),
     );
@@ -259,25 +358,25 @@ pub fn draw_titlescreen() {
     // T
     plot(
         201u8 as char,
-        TITLE_X + 8,
-        TITLE_Y,
-        ColorCode::new(Color::Yellow, Color::Red),
-    );
-    plot(
-        205u8 as char,
         TITLE_X + 9,
         TITLE_Y,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
-        186u8 as char,
-        TITLE_X + 8,
-        TITLE_Y + 1,
+        205u8 as char,
+        TITLE_X + 10,
+        TITLE_Y,
         ColorCode::new(Color::Yellow, Color::Red),
     );
     plot(
         186u8 as char,
-        TITLE_X + 8,
+        TITLE_X + 9,
+        TITLE_Y + 1,
+        ColorCode::new(Color::Yellow, Color::Red),
+    );
+    plot(
+        211u8 as char,
+        TITLE_X + 9,
         TITLE_Y + 2,
         ColorCode::new(Color::Yellow, Color::Red),
     );
@@ -286,7 +385,7 @@ pub fn draw_titlescreen() {
     //prompt
 
     const PROMPT_X: usize = 32;
-    const PROMPT_Y: usize = 16;
+    const PROMPT_Y: usize = 20;
 
     plot(
         'P',
